@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Турниры</title>
+    <title>Игроки</title>
 </head>
 <body>
     {% for o in objects %}
-    {{o.id}} {{o.name}} {{o.start_date}} {{o.end_date}} {{o.status}} {{o.prize_pool}}<br>
+    {{o.id}} {{o.nickname}} {{o.real_name}} {{o.role}} {{o.team}}<br>
     {% endfor %}
 </body>
 </html>

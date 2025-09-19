@@ -20,13 +20,16 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from dotaesports import views
-from dotaesports.api import TournamentViewset
+from dotaesports.api import TournamentViewset, TeamViewset, PlayerViewset, TournamentTeamParticipationViewset, MatchViewset
 
 router = DefaultRouter()
 router.register("tournaments", TournamentViewset, basename="tournaments")
+router.register("teams", TeamViewset, basename="teams")
+router.register("players", PlayerViewset, basename="players")
+router.register("tournamentsteamsparticipations", TournamentTeamParticipationViewset, basename="tournamentsteamsparticipations")
+router.register("matches", MatchViewset, basename="matches")
 
 urlpatterns = [
-    path('', views.ShowTournamentsView.as_view()),
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
