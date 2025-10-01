@@ -4,11 +4,11 @@ from model_bakery import baker
 from dotaesports.models import *
 
 # Create your tests here.
-class TournamentViewsetTestCase(TestCase):
+class TournamentsViewsetTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
 
-    def test_get_list_tournament(self):
+    def test_get_list_tournaments(self):
         tournament = Tournament.objects.create(
             name="БумБет Дача",
             start_date="2024-10-01",
@@ -26,7 +26,7 @@ class TournamentViewsetTestCase(TestCase):
         assert tournament.status == data[0]['status']
         assert tournament.prize_pool == data[0]['prize_pool']
 
-    def test_create_tournament(self):
+    def test_create_tournaments(self):
         # fields = ['id', 'name', 'start_date', 'end_date', 'status', 'prize_pool']
         tournament = baker.make("Tournament")
 
@@ -40,7 +40,7 @@ class TournamentViewsetTestCase(TestCase):
         assert tournament.status == data[0]['status']
         assert tournament.prize_pool == data[0]['prize_pool']
 
-    def test_delete_tournament(self):
+    def test_delete_tournaments(self):
         tournaments = baker.make("Tournament", 10)
         r = self.client.get('/api/tournaments/')
         data = r.json()
@@ -58,7 +58,7 @@ class TournamentViewsetTestCase(TestCase):
 
         assert tournament_id_to_delete not in [i['id'] for i in data]
 
-    def test_update_tournament(self):
+    def test_update_tournaments(self):
         tournaments = baker.make("Tournament", 10)
         tournament: Tournament = tournaments[2]
 
@@ -85,3 +85,66 @@ class TournamentViewsetTestCase(TestCase):
         tournament.refresh_from_db()
         assert data['name'] == tournament.name
 
+class TeamsViewsetTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_get_list_teams(self):
+        pass
+
+    def test_create_teams(self):
+        pass
+
+    def test_delete_teams(self):
+        pass
+
+    def test_update_teams(self):
+        pass
+
+class PlayersViewsetTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_get_list_players(self):
+        pass
+
+    def test_create_players(self):
+        pass
+
+    def test_delete_players(self):
+        pass
+
+    def test_update_players(self):
+        pass
+
+class TournamentTeamParticipationsViewsetTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_get_list_tournamentteamparticipations(self):
+        pass
+
+    def test_create_tournamentteamparticipations(self):
+        pass
+
+    def test_delete_tournamentteamparticipations(self):
+        pass
+
+    def test_update_tournamentteamparticipations(self):
+        pass
+
+class MatchesViewsetTestCase(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_get_list_matches(self):
+        pass
+
+    def test_create_matches(self):
+        pass
+
+    def test_delete_matches(self):
+        pass
+
+    def test_update_matches(self):
+        pass 
