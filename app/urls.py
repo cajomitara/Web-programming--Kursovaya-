@@ -30,6 +30,12 @@ router.register("tournamentsteamsparticipations", TournamentTeamParticipationVie
 router.register("matches", MatchViewset, basename="matches")
 
 urlpatterns = [
+    path('tournaments/', views.ShowTournamentsView.as_view()),
+    path('teams/', views.ShowTeamsView.as_view()),
+    path('players/', views.ShowPlayersView.as_view()),
+    path('tournamentsteamsparticipations/', views.ShowTournamentTeamParticipationsView.as_view()),
+    path('matches/', views.ShowMatchTeamParticipationsView.as_view()),
+
     path('admin/', admin.site.urls),
     path('api/', include(router.urls)),
 ]
