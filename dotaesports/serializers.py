@@ -31,7 +31,7 @@ class MatchSerializer(serializers.ModelSerializer):
     tournament = TournamentSerializer(read_only=True)
     radiant = TeamSerializer(read_only=True)
     dire = TeamSerializer(read_only=True)
-
+    
     class Meta:
         model = Match
         fields = ['id', 'tournament', 'radiant', 'dire', 'start_date', 'winner']
