@@ -1,8 +1,9 @@
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
 
+from django.contrib.auth.models import User
 from dotaesports.models import Tournament, Team, Player, TournamentTeamParticipation, Match
-from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer
+from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer, UserSerializer
 
 class TournamentViewset(
     mixins.CreateModelMixin,
@@ -58,3 +59,7 @@ class MatchViewset(
 ):
     queryset = Match.objects.all()
     serializer_class = MatchSerializer
+
+class UserViewset(viewsets.ReadOnlyModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer

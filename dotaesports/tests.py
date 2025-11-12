@@ -3,6 +3,7 @@ from rest_framework.test import APIClient
 from model_bakery import baker
 from dotaesports.models import *
 
+
 # Create your tests here.
 class TournamentsViewsetTestCase(TestCase):
     def setUp(self):
@@ -346,8 +347,8 @@ class MatchesViewsetTestCase(TestCase):
             tournament=match_tournament,
             radiant=radiant_team,
             dire=dire_team,
-            start_date="2024-10-05T00:00:00Z",
-            winner="Dire"
+            start_date="2024-10-05T00:00:00.000000",
+            winner=radiant_team
         )
 
         r = self.client.get('/api/matches/')
@@ -357,7 +358,7 @@ class MatchesViewsetTestCase(TestCase):
         assert match.radiant.id == data[0]['radiant']['id']
         assert match.dire.id == data[0]['dire']['id']
         assert match.start_date == data[0]['start_date']
-        assert match.winner == data[0]['winner']
+        assert match.winner.id == data[0]['winner']['id']
 
 
     def test_create_matches(self):
@@ -402,12 +403,11 @@ class MatchesViewsetTestCase(TestCase):
         r = self.client.get(f'/api/matches/{match.id}/')
         data = r.json()
         
-        assert data['winner'] == match.winner
+        assert data['start_date'] == match.start_date.isoformat()
 
         r = self.client.put(f'/api/matches/{match.id}/',
         {
-            'start_date': match.start_date, 
-            'winner': 'RADIANT'
+            'start_date': "2024-10-21T12:42:07.057511", 
         })
         
         print(r.json())
@@ -415,7 +415,7 @@ class MatchesViewsetTestCase(TestCase):
 
         r = self.client.get(f'/api/matches/{match.id}/')
         data = r.json()
-        assert data['winner'] == 'RADIANT'
+        assert data['start_date'] == "2024-10-21T12:42:07.057511"
 
         match.refresh_from_db()
-        assert data['winner'] == match.winner 
+        assert data['start_date'] == match.start_date.isoformat()

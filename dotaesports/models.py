@@ -2,10 +2,10 @@ from django.db import models
 
 # Create your models here.
 class Tournament(models.Model):
-    name = models.TextField('Название турнира')
+    name = models.TextField('Название турнира', null=True)
 
-    start_date = models.DateField('Дата начала')
-    end_date = models.DateField('Дата окончания')
+    start_date = models.DateField('Дата начала', null=True)
+    end_date = models.DateField('Дата окончания', null=True)
 
     class Status(models.TextChoices):
         TBA = "TBA", ("Неизвестно")
@@ -16,9 +16,10 @@ class Tournament(models.Model):
         max_length = 6,
         choices = Status,
         default = Status.TBA,
+        null=True
     )
 
-    prize_pool = models.IntegerField("Призовой фонд (в рублях)")
+    prize_pool = models.IntegerField("Призовой фонд (в рублях)", null=True)
 
     class Meta:
         verbose_name = "Турнир"
@@ -28,8 +29,8 @@ class Tournament(models.Model):
         return self.name
 
 class Team(models.Model):
-    name = models.TextField('Название')
-    country = models.TextField('Страна происхождения')
+    name = models.TextField('Название', null=True)
+    country = models.TextField('Страна происхождения', null=True)
 
     class Meta:
         verbose_name = "Команда"
@@ -39,8 +40,10 @@ class Team(models.Model):
         return self.name
 
 class Player(models.Model):
-    nickname = models.TextField('Псевдоним')
-    real_name = models.TextField('Настоящее имя')
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
+
+    nickname = models.TextField('Псевдоним', null=True)
+    real_name = models.TextField('Настоящее имя', null=True)
 
     class Role(models.TextChoices):
         CARRY = "CARRY", ("Керри")
@@ -51,7 +54,8 @@ class Player(models.Model):
     role = models.CharField(
         max_length = 11,
         choices = Role,
-        verbose_name = "Роль"
+        verbose_name = "Роль",
+        null=True
     )
 
     team = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, verbose_name="Команда")
@@ -67,7 +71,7 @@ class TournamentTeamParticipation(models.Model):
     tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, null=True, verbose_name="Турнир")
     team = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, verbose_name="Команда")
 
-    place = models.IntegerField("Место", default=0)
+    place = models.IntegerField("Место", default=0, null=True)
     
     class Meta:
         verbose_name = "Участие команды"
@@ -79,18 +83,9 @@ class Match(models.Model):
     radiant = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='radiant_matches', verbose_name="Силы Света")
     dire = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='dire_matches', verbose_name="Силы Тьмы")
 
-    start_date = models.DateTimeField('Дата начала')
+    start_date = models.DateTimeField('Дата начала', null=True)
 
-    class Winner(models.TextChoices):
-        TBA = "TBA", ("Неизвестно")
-        RADIANT = "RADIANT", ("Силы Света")
-        DIRE = "DIRE", ("Силы Тьмы")
-    winner = models.CharField(
-        max_length = 7,
-        choices = Winner,
-        default = Winner.TBA,
-        verbose_name = "Победитель"
-    )
+    winner = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='winner', verbose_name="Победитель")
 
     class Meta:
         verbose_name = "Матч"
