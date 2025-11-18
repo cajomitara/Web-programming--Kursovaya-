@@ -11,12 +11,12 @@ class UserSerializer(serializers.ModelSerializer):
 class TournamentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tournament
-        fields = ['id', 'name', 'start_date', 'end_date', 'status', 'prize_pool']
+        fields = ['id', 'name', 'start_date', 'end_date', 'status', 'prize_pool', 'logo']
 
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ['id', 'name', 'country']
+        fields = ['id', 'name', 'country', 'logo']
 
 class PlayerSerializer(serializers.ModelSerializer):
     team = TeamSerializer(read_only=True)
@@ -35,7 +35,7 @@ class PlayerSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Player
-        fields = ['id', 'user', 'user_id', 'nickname', 'real_name', 'role', 'team', 'team_id']
+        fields = ['id', 'user', 'user_id', 'nickname', 'real_name', 'role', 'team', 'team_id', 'photo']
 
 class TournamentTeamParticipationSerializer(serializers.ModelSerializer):
     tournament = TournamentSerializer(read_only=True)

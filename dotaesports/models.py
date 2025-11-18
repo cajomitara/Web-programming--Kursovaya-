@@ -7,6 +7,8 @@ class Tournament(models.Model):
     start_date = models.DateField('Дата начала', null=True)
     end_date = models.DateField('Дата окончания', null=True)
 
+    logo = models.ImageField("Изображение", null=True, upload_to="tournaments")
+
     class Status(models.TextChoices):
         TBA = "TBA", ("Неизвестно")
         COMING = "Coming", ("Скоро начнётся")
@@ -32,6 +34,8 @@ class Team(models.Model):
     name = models.TextField('Название', null=True)
     country = models.TextField('Страна происхождения', null=True)
 
+    logo = models.ImageField("Изображение", null=True, upload_to="teams")
+
     class Meta:
         verbose_name = "Команда"
         verbose_name_plural = "Команды"
@@ -44,6 +48,8 @@ class Player(models.Model):
 
     nickname = models.TextField('Псевдоним', null=True)
     real_name = models.TextField('Настоящее имя', null=True)
+
+    photo = models.ImageField("Изображение", null=True, upload_to="players")
 
     class Role(models.TextChoices):
         CARRY = "CARRY", ("Керри")

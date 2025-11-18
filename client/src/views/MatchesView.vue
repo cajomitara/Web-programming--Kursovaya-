@@ -115,7 +115,7 @@ async function onMatchEditClick(match) {
                     <div class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
-                                <input type="datetime-local" class="form-control" v-model="matchToEdit.start_date" />
+                                <input type="datetime-local" class="form-control" v-model="matchToEdit.start_date" required/>
                                 <label>Дата и время начала</label>
                             </div>
                         </div>
