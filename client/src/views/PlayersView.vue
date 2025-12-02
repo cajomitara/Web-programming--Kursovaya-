@@ -14,7 +14,7 @@ const playersEditPictureRef = ref();
 const previewImageUrl = ref('');
 
 const teams = ref([]);
-const users = ref([]);
+// const users = ref([]);
 
 const deletePhoto = ref(false);
 const loading = ref(false);
@@ -34,10 +34,10 @@ async function fetchItems() {
     console.log(r1.data);
     teams.value = r1.data;
 
-    const r2 = await axios.get("/api/users/");
-    console.log(r2.data);
-    users.value = r2.data;
-    loading.value = false;
+    // const r2 = await axios.get("/api/users/");
+    // console.log(r2.data);
+    // users.value = r2.data;
+    // loading.value = false;
 }
 
 
@@ -53,7 +53,7 @@ async function onPlayerAdd() {
         formData.append('photo', playersPictureRef.value.files[0]);
     }
 
-    formData.set('user_id', playerToAdd.value.user_id)
+    // formData.set('user_id', playerToAdd.value.user_id)
     formData.set('nickname', playerToAdd.value.nickname)
     formData.set('real_name', playerToAdd.value.real_name)
     formData.set('role', playerToAdd.value.role)
@@ -78,7 +78,7 @@ async function onRemoveClickPlayer(player) {
 async function onUpdatePlayer() {
     const formData = new FormData();
 
-    formData.set('user_id', playerToEdit.value.user_id)
+    // formData.set('user_id', playerToEdit.value.user_id)
     formData.set('nickname', playerToEdit.value.nickname)
     formData.set('real_name', playerToEdit.value.real_name)
     formData.set('role', playerToEdit.value.role)
@@ -122,9 +122,11 @@ async function playersEditPictureChange() {
 async function onPlayerEditClick(player) {
     playerToEdit.value = {
         ...player,
-        user_id: player.user?.id,
+
         team_id: player.team?.id
     };
+    // user_id: player.user?.id,
+
     playerToEditImageUrl.value = null;
     deletePhoto.value = false;
     if (playersEditPictureRef.value) {
@@ -171,7 +173,7 @@ function openImagePreview(imageUrl) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row mb-2">
+                    <!-- <div class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
                                 <select class="form-select" v-model="playerToEdit.user_id" required>
@@ -180,7 +182,7 @@ function openImagePreview(imageUrl) {
                                 <label>Привязка к пользователю</label>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <div class="row mb-2">
                         <div class="col-12">
@@ -268,12 +270,12 @@ function openImagePreview(imageUrl) {
     <form @submit.prevent.stop="onPlayerAdd">
         <div class="row m-2">
             <div class="col-auto">
-                <div class="form-floating">
+                <!-- <div class="form-floating">
                     <select class="form-select" v-model="playerToAdd.user_id" required>
                         <option :value="u.id" v-for="u in users">{{ u.username }}</option>
                     </select>
                     <label for="floatingInput">Привязка к пользователю</label>
-                </div>
+                </div> -->
             </div>
             <div class="col-2">
                 <div class="form-floating">
@@ -327,7 +329,7 @@ function openImagePreview(imageUrl) {
     <!-- вывод и кнопки -->
     <div v-for="p in players" class="output-item">
         <div>
-            {{ p.user?.username }} {{ p.nickname }} {{ p.real_name }} {{ p.role }} {{ p.team?.name }}
+            {{ p.nickname }} {{ p.real_name }} {{ p.role }} {{ p.team?.name }}
             <div v-show="p.photo">
                 <img :src="p.photo" style="max-height: 150px; cursor: pointer;" :alt="`Фото игрока ${p.nickname}`"
                     @click="openImagePreview(p.photo)" data-bs-toggle="modal" data-bs-target="#imagePreviewModal">

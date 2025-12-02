@@ -33,6 +33,8 @@ class ShowPlayersView(TemplateView):
         context['objects'] = Player.objects.all()
         
         return context
+    
+
 
 class ShowTournamentTeamParticipationsView(TemplateView):
     template_name = "teamparticipations/show_teamparticipations.html"

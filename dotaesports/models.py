@@ -31,6 +31,7 @@ class Tournament(models.Model):
         return self.name
 
 class Team(models.Model):
+    by_user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
     name = models.TextField('Название', null=True)
     country = models.TextField('Страна происхождения', null=True)
 
@@ -44,7 +45,8 @@ class Team(models.Model):
         return self.name
 
 class Player(models.Model):
-    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
+    # user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
+    user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
 
     nickname = models.TextField('Псевдоним', null=True)
     real_name = models.TextField('Настоящее имя', null=True)
@@ -72,6 +74,22 @@ class Player(models.Model):
 
     def __str__(self) -> str:
         return self.nickname
+    
+
+class PlayerTeamHistory(models.Model):
+    player = models.ForeignKey(Player, on_delete=models.CASCADE, null=True, 
+                              verbose_name="Кого переводили", related_name='team_history')
+    manager = models.ForeignKey("auth.User", verbose_name="Кто переводил", on_delete=models.CASCADE, null=True, related_name="player_team_history")
+    team = models.ForeignKey("Team", on_delete=models.CASCADE, null=True, verbose_name="Команда")
+    created_at = models.DateTimeField(null=True, auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "История команд игрока"
+        verbose_name_plural = "Истории команд игроков"
+
+    def __str__(self) -> str:
+        return f"{self.player.nickname if self.player else 'No player'} -> {self.team.name if self.team else 'No team'}"
 
 class TournamentTeamParticipation(models.Model):
     tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, null=True, verbose_name="Турнир")
@@ -80,6 +98,8 @@ class TournamentTeamParticipation(models.Model):
     place = models.IntegerField("Место", default=0, null=True)
     
     class Meta:
+        unique_together = ['tournament', 'team']
+        ordering = ['place']
         verbose_name = "Участие команды"
         verbose_name_plural = "Участия команды"
 
@@ -91,7 +111,7 @@ class Match(models.Model):
 
     start_date = models.DateTimeField('Дата начала', null=True)
 
-    winner = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='winner', verbose_name="Победитель")
+    winner = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, related_name='winner', verbose_name="Победитель")
 
     class Meta:
         verbose_name = "Матч"
