@@ -2,6 +2,13 @@
 import { ref, onBeforeMount } from 'vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
+import { useUserStore } from '../stores/user_store';
+import { storeToRefs } from 'pinia';
+
+const userStore = useUserStore();
+const {
+    userInfo
+} = storeToRefs(userStore)
 
 const teams = ref([]);
 const players = ref([]);
@@ -12,7 +19,7 @@ const teamToEditImageUrl = ref();
 const teamsPictureRef = ref();
 const teamsEditPictureRef = ref();
 
-const previewImageUrl = ref('');
+const previewImageUrl = ref();
 const deleteLogo = ref(false);
 const loading = ref(false);
 
@@ -158,40 +165,29 @@ function prepareTransferPlayerModal(team) {
 }
 
 async function onCreatePlayer() {
-    try {
-        await axios.post("/api/players/", newPlayer.value);
-        await fetchPlayers();
-        alert('Игрок успешно добавлен!');
+    await axios.post("/api/players/", newPlayer.value);
+    await fetchPlayers();
 
-        newPlayer.value = {
-            nickname: '',
-            real_name: '',
-            role: 'CARRY',
-            team_id: currentTeamForModal.value.id
-        };
-    } catch (error) {
-        alert('Ошибка: ' + (error.response?.data?.nickname?.[0] || error.message));
-    }
+    newPlayer.value = {
+        nickname: '',
+        real_name: '',
+        role: 'CARRY',
+        team_id: currentTeamForModal.value.id
+    };
 }
 
 async function onTransferPlayer() {
-    try {
-        if (!transferPlayerData.value.player_id) {
-            alert('Выберите игрока для перевода');
-            return;
-        }
-
-        await axios.patch(`/api/players/${transferPlayerData.value.player_id}/`, {
-            team_id: transferPlayerData.value.team_id
-        });
-
-        await fetchPlayers();
-        alert('Игрок успешно переведен!');
-
-        transferPlayerData.value.player_id = null;
-    } catch (error) {
-        alert('Ошибка: ' + error.message);
+    if (!transferPlayerData.value.player_id) {
+        return;
     }
+
+    await axios.patch(`/api/players/${transferPlayerData.value.player_id}/`, {
+        team_id: transferPlayerData.value.team_id
+    });
+
+    await fetchPlayers();
+
+    transferPlayerData.value.player_id = null;
 }
 
 function getPlayersNotInTeam() {
@@ -227,7 +223,7 @@ function getPlayersInTeam() {
     </div>
 
     <!-- модальное окно добавления игрока -->
-    <div class="modal fade" id="addPlayerModal" tabindex="-1">
+    <div class="modal" id="addPlayerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -269,7 +265,7 @@ function getPlayersInTeam() {
     </div>
 
     <!-- модальное окно перевода игрока -->
-    <div class="modal fade" id="transferPlayerModal" tabindex="-1">
+    <div class="modal" id="transferPlayerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -304,7 +300,7 @@ function getPlayersInTeam() {
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         Отмена
                     </button>
-                    <button type="button" class="btn btn-warning" @click="onTransferPlayer" :disabled="!transferPlayerData.player_id" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-primary" @click="onTransferPlayer" :disabled="!transferPlayerData.player_id" data-bs-dismiss="modal">
                         Перевести игрока
                     </button>
                 </div>
@@ -398,13 +394,10 @@ function getPlayersInTeam() {
             </div>
             <div class="col-auto">
                 <input class="form-control" type="file" ref="teamsPictureRef" @change="teamsAddPictureChange" />
-            </div>
-            <div class="col-auto">
-                <img :src="teamToAddImageUrl" style="max-height:150px; cursor: pointer;" alt=""
+                                <img :src="teamToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
                     @click="openImagePreview(teamToAddImageUrl)" data-bs-toggle="modal"
                     data-bs-target="#imagePreviewModal">
             </div>
-
             <div class="col-auto">
                 <button class="btn btn-primary">
                     Добавить
@@ -421,19 +414,17 @@ function getPlayersInTeam() {
                     @click="openImagePreview(t.logo)" data-bs-toggle="modal" data-bs-target="#imagePreviewModal"></div>
         </div>
         <div>
-            <!-- Новые кнопки для работы с игроками -->
-            <button class="btn btn-primary mb-1" @click="prepareAddPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#addPlayerModal">
+            <button class="btn btn-primary m-1" @click="prepareAddPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#addPlayerModal">
                 Добавить игрока
             </button>
-            <button class="btn btn-warning mb-1" @click="prepareTransferPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#transferPlayerModal">
+            <button class="btn btn-secondary m-1" @click="prepareTransferPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#transferPlayerModal">
                 Перевести игрока
             </button>
-            <button class="btn btn-success mb-1" @click="onTeamEditClick(t)" data-bs-toggle="modal"
-                data-bs-target="#editTeamModal">
-                <i class="bi bi-pen-fill">Редактировать</i>
+            <button class="btn btn-success m-1" @click="onTeamEditClick(t)" data-bs-toggle="modal" data-bs-target="#editTeamModal">
+                Редактировать
             </button>
-            <button class="btn btn-danger" @click="onRemoveClickTeam(t)">
-                <i class="bi bi-x">Удалить</i>
+            <button class="btn btn-danger m-1" @click="onRemoveClickTeam(t)">
+                Удалить
             </button>
         </div>
     </div>
@@ -455,9 +446,5 @@ function getPlayersInTeam() {
     justify-content: center;
 }
 
-.output-item > div:last-child {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
+
 </style>

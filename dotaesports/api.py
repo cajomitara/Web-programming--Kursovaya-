@@ -1,9 +1,13 @@
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import serializers
 
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
 from dotaesports.models import Tournament, Team, Player, TournamentTeamParticipation, Match, PlayerTeamHistory
-from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer, PlayerTeamHistorySerializer
+from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer, PlayerTeamHistorySerializer, UserSerializer
 
 class TournamentViewset(
     mixins.CreateModelMixin,
@@ -40,8 +44,6 @@ class PlayerViewset(
     queryset = Player.objects.all()
     serializer_class = PlayerSerializer
 
-
-
     def get_queryset(self):
         qs = super().get_queryset()
         # if self.request.user.is_authenticated:
@@ -70,9 +72,53 @@ class MatchViewset(
     queryset = Match.objects.all()
     serializer_class = MatchSerializer
 
-# class UserViewset(viewsets.ReadOnlyModelViewSet):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
+class UserViewset(mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    @action(url_path="my", methods=["GET"], detail=False)
+    def get_my(self, *args, **kwargs):
+        return Response({
+            'username': self.request.user.username,
+            'is_authenticated': self.request.user.is_authenticated,
+            'is_staff': self.request.user.is_staff
+        })
+    
+    @action(url_path="login", methods=["POST"], detail=False)
+    def process_login(self, *args, **kwargs):
+        class LoginSerializer(serializers.Serializer):
+            username = serializers.CharField()
+            password = serializers.CharField()
+
+        serializer = LoginSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+        
+        user = authenticate(username=username, password=password)
+        if user:
+            login(request=self.request, user=user)
+        else:
+            return Response({
+                "status": "Failed!"
+            }, status=401)
+        return Response({
+                "status": "Success!"
+        })
+    
+    @action(url_path="logout", methods=["POST"], detail=False)
+    def process_logout(self, *args, **kwargs):
+        logout(self.request)
+
+        return Response({
+                "status": "Success!"
+        })
 
 class PlayerTeamHistoryViewset(
     mixins.CreateModelMixin,

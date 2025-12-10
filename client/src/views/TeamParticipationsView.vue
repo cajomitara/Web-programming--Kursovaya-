@@ -2,6 +2,13 @@
 import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
+import { useUserStore } from '../stores/user_store';
+import { storeToRefs } from 'pinia';
+
+const userStore = useUserStore();
+const {
+    userInfo
+} = storeToRefs(userStore)
 
 const team_parts = ref([]);
 const team_partToAdd = ref({});
@@ -165,12 +172,12 @@ async function onTeamPartEditClick(team_part) {
         <div>
             <button class="btn btn-success" @click="onTeamPartEditClick(tp)" data-bs-toggle="modal"
                 data-bs-target="#editTeamPartModal">
-                <i class="bi bi-pen-fill">Редактировать</i>
+                Редактировать
             </button>
         </div>
         <div>
             <button class="btn btn-danger" @click="onRemoveClickTeamParts(tp)">
-                <i class="bi bi-x">Удалить</i>
+                Удалить
             </button>
         </div>
     </div>

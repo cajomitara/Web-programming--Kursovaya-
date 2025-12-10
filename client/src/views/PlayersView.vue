@@ -2,6 +2,13 @@
 import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
+import { useUserStore } from '../stores/user_store';
+import { storeToRefs } from 'pinia';
+
+const userStore = useUserStore();
+const {
+    userInfo
+} = storeToRefs(userStore)
 
 const players = ref([]);
 const playerToAdd = ref({});
@@ -173,17 +180,6 @@ function openImagePreview(imageUrl) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- <div class="row mb-2">
-                        <div class="col-12">
-                            <div class="form-floating">
-                                <select class="form-select" v-model="playerToEdit.user_id" required>
-                                    <option :value="u.id" v-for="u in users">{{ u.username }}</option>
-                                </select>
-                                <label>Привязка к пользователю</label>
-                            </div>
-                        </div>
-                    </div> -->
-
                     <div class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
@@ -270,14 +266,6 @@ function openImagePreview(imageUrl) {
     <form @submit.prevent.stop="onPlayerAdd">
         <div class="row m-2">
             <div class="col-auto">
-                <!-- <div class="form-floating">
-                    <select class="form-select" v-model="playerToAdd.user_id" required>
-                        <option :value="u.id" v-for="u in users">{{ u.username }}</option>
-                    </select>
-                    <label for="floatingInput">Привязка к пользователю</label>
-                </div> -->
-            </div>
-            <div class="col-2">
                 <div class="form-floating">
                     <input type="text" class="form-control" v-model="playerToAdd.nickname" />
                     <label for="floatingInput">Никнейм</label>
@@ -289,7 +277,7 @@ function openImagePreview(imageUrl) {
                     <label for="floatingInput">Настоящее имя</label>
                 </div>
             </div>
-            <div class="col-1">
+            <div class="col-auto">
                 <div class="form-floating">
                     <select class="form-control" v-model="playerToAdd.role" required>
                         <option value="CARRY">Керри</option>
@@ -301,7 +289,7 @@ function openImagePreview(imageUrl) {
                     <label>Роль</label>
                 </div>
             </div>
-            <div class="col-auto">
+            <div class="col-2">
                 <div class="form-floating">
                     <select class="form-select" v-model="playerToAdd.team_id" required>
                         <option :value="t.id" v-for="t in teams">{{ t.name }}</option>
@@ -309,11 +297,9 @@ function openImagePreview(imageUrl) {
                     <label for="floatingInput">Команда</label>
                 </div>
             </div>
-            <div class="col-3">
-                <input class="form-control" type="file" ref="playersPictureRef" @change="playersAddPictureChange" />
-            </div>
             <div class="col-auto">
-                <img :src="playerToAddImageUrl" style="max-height:150px; cursor: pointer;" alt=""
+                <input class="form-control" type="file" ref="playersPictureRef" @change="playersAddPictureChange" />
+                                <img :src="playerToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
                     @click="openImagePreview(playerToAddImageUrl)" data-bs-toggle="modal"
                     data-bs-target="#imagePreviewModal">
             </div>
@@ -338,12 +324,12 @@ function openImagePreview(imageUrl) {
         <div>
             <button class="btn btn-success" @click="onPlayerEditClick(p)" data-bs-toggle="modal"
                 data-bs-target="#editTournamentModal">
-                <i class="bi bi-pen-fill">Редактировать</i>
+                Редактировать
             </button>
         </div>
         <div>
             <button class="btn btn-danger" @click="onRemoveClickPlayer(p)">
-                <i class="bi bi-x">Удалить</i>
+                Удалить
             </button>
         </div>
     </div>

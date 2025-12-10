@@ -34,8 +34,6 @@ class ShowPlayersView(TemplateView):
         
         return context
     
-
-
 class ShowTournamentTeamParticipationsView(TemplateView):
     template_name = "teamparticipations/show_teamparticipations.html"
 

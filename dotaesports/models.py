@@ -45,8 +45,8 @@ class Team(models.Model):
         return self.name
 
 class Player(models.Model):
-    # user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
-    user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
+    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
+    # user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
 
     nickname = models.TextField('Псевдоним', null=True)
     real_name = models.TextField('Настоящее имя', null=True)

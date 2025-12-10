@@ -1,9 +1,31 @@
 <script setup>
+import { computed, ref, onBeforeMount } from 'vue';
+import axios from "axios";
+import Cookies from 'js-cookie';
+import { useUserStore } from './stores/user_store';
+import { storeToRefs } from 'pinia';
+import { useRouter } from 'vue-router';
 
+const userStore = useUserStore();
+const {
+    username,
+    is_authenticated
+} = storeToRefs(userStore)
+
+// const user = ref([])
+// const username = ref();
+
+const router = useRouter();
+
+async function onLogout() {
+    const r = await axios.post("/api/users/logout/");
+    userStore.fetchUser();
+    router.go(0);
+}
 </script>
 
 <template>
-    <div class="container">
+    <div v-if="is_authenticated" class="container">
         <nav class="navbar navbar-expand-lg bg-body-tertiary">
             <div class="container-fluid">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
@@ -33,11 +55,14 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
                                 aria-expanded="false">
-                                Пользователь
+                                {{ username }}
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
                                     <a class="dropdown-item" href="/admin">Админка</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" @click="onLogout">Выйти</a>
                                 </li>
                             </ul>
                         </li>

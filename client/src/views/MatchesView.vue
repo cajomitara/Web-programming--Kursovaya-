@@ -2,6 +2,13 @@
 import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
+import { useUserStore } from '../stores/user_store';
+import { storeToRefs } from 'pinia';
+
+const userStore = useUserStore();
+const {
+    userInfo
+} = storeToRefs(userStore)
 
 const matches = ref([]);
 const matchToAdd = ref({});
@@ -204,12 +211,12 @@ async function onMatchEditClick(match) {
         <div>
             <button class="btn btn-success" @click="onMatchEditClick(m)" data-bs-toggle="modal"
                 data-bs-target="#editMatchModal">
-                <i class="bi bi-pen-fill">Редактировать</i>
+                Редактировать
             </button>
         </div>
         <div>
             <button class="btn btn-danger" @click="onRemoveClickMatch(m)">
-                <i class="bi bi-x">Удалить</i>
+                Удалить
             </button>
         </div>
     </div>

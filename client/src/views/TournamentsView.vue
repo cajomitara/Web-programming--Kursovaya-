@@ -2,6 +2,13 @@
 import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
 import Cookies from 'js-cookie';
+import { useUserStore } from '../stores/user_store';
+import { storeToRefs } from 'pinia';
+
+const userStore = useUserStore();
+const {
+    userInfo
+} = storeToRefs(userStore)
 
 const tournaments = ref([]);
 const tournamentToAdd = ref({});
@@ -276,12 +283,12 @@ function openImagePreview(imageUrl) {
         <div>
             <button class="btn btn-success" @click="onTournamentEditClick(t)" data-bs-toggle="modal"
                 data-bs-target="#editTournamentModal">
-                <i class="bi bi-pen-fill">Редактировать</i>
+                Редактировать
             </button>
         </div>
         <div>
             <button class="btn btn-danger" @click="onRemoveClickTournament(t)">
-                <i class="bi bi-x">Удалить</i>
+                Удалить
             </button>
         </div>
     </div>
