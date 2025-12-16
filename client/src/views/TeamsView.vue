@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 
 const userStore = useUserStore();
 const {
-    userInfo
+    is_staff
 } = storeToRefs(userStore)
 
 const teams = ref([]);
@@ -24,16 +24,14 @@ const deleteLogo = ref(false);
 const loading = ref(false);
 
 const currentTeamForModal = ref(null);
-const newPlayer = ref({
-  nickname: '',
-  real_name: '',
-  role: 'CARRY',
-  team_id: null
-});
+const newPlayer = ref({});
 const transferPlayerData = ref({
-  player_id: null,
-  team_id: null
+    player_id: null,
+    team_id: null
 });
+
+const teamStats = ref({});
+const selectedTeam = ref(null);
 
 onBeforeMount(async () => {
     await fetchTeams();
@@ -181,6 +179,7 @@ async function onTransferPlayer() {
         return;
     }
 
+
     await axios.patch(`/api/players/${transferPlayerData.value.player_id}/`, {
         team_id: transferPlayerData.value.team_id
     });
@@ -192,24 +191,58 @@ async function onTransferPlayer() {
 
 function getPlayersNotInTeam() {
     if (!currentTeamForModal.value) return [];
-    
+
     return players.value.filter(player => {
-        return !player.team || player.team.id !== currentTeamForModal.value.id;
+        return !player.team || player.team.id != currentTeamForModal.value.id;
     });
 }
 
 function getPlayersInTeam() {
     if (!currentTeamForModal.value) return [];
-    
+
     return players.value.filter(player => {
-        return player.team && player.team.id === currentTeamForModal.value.id;
+        return player.team && player.team.id == currentTeamForModal.value.id;
     });
+}
+
+async function openTeamStats(team) {
+    selectedTeam.value = team;
+    const response = await axios.get(`/api/teams/${team.id}/prize_stats/`);
+    teamStats.value = response.data;
 }
 </script>
 
 <template>
+    <!-- статистика -->
+    <div class="modal fade" id="teamStatsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">Призовые места команды {{ selectedTeam?.name }}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="row">
+                        <div class="col-4">
+                            1-е места: {{ teamStats.first || 0 }}
+                        </div>
+                        <div class="col-4">
+                            2-е места: {{ teamStats.second || 0 }}
+                        </div>
+                        <div class="col-4">
+                            3-и места: {{ teamStats.third || 0 }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- просмотр картинок в модальном окне -->
-    <div class="modal" id="imagePreviewModal" tabindex="-1">
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-body text-center">
@@ -222,41 +255,54 @@ function getPlayersInTeam() {
         </div>
     </div>
 
-    <!-- модальное окно добавления игрока -->
-    <div class="modal" id="addPlayerModal" tabindex="-1">
+    <!-- модальное окно добавления игрока в команду -->
+    <div class="modal fade" id="addPlayerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h1 class="modal-title fs-5">
                         Добавить игрока в {{ currentTeamForModal?.name }}
-                    </h5>
+                    </h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Никнейм *</label>
-                        <input type="text" class="form-control" v-model="newPlayer.nickname" required>
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" v-model="newPlayer.nickname" required>
+                                <label>Никнейм</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Настоящее имя</label>
-                        <input type="text" class="form-control" v-model="newPlayer.real_name">
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" v-model="newPlayer.real_name">
+                                <label>Настоящее имя</label>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Роль</label>
-                        <select class="form-select" v-model="newPlayer.role">
-                            <option value="CARRY">Керри</option>
-                            <option value="MIDLANER">Мидлейнер</option>
-                            <option value="OFFLANER">Оффлейнер</option>
-                            <option value="SEMISUPPORT">Четвёрка</option>
-                            <option value="FULLSUPPORT">Пятёрка</option>
-                        </select>
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <select class="form-select" v-model="newPlayer.role">
+                                    <option value="CARRY">Керри</option>
+                                    <option value="MIDLANER">Мидлейнер</option>
+                                    <option value="OFFLANER">Оффлейнер</option>
+                                    <option value="SEMISUPPORT">Четвёрка</option>
+                                    <option value="FULLSUPPORT">Пятёрка</option>
+                                </select>
+                                <label>Роль</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Отмена
+                        Закрыть
                     </button>
-                    <button type="button" class="btn btn-primary" @click="onCreatePlayer" :disabled="!newPlayer.nickname" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-primary" @click="onCreatePlayer"
+                        :disabled="!newPlayer.nickname" data-bs-dismiss="modal">
                         Добавить игрока
                     </button>
                 </div>
@@ -265,32 +311,35 @@ function getPlayersInTeam() {
     </div>
 
     <!-- модальное окно перевода игрока -->
-    <div class="modal" id="transferPlayerModal" tabindex="-1">
+    <div class="modal fade" id="transferPlayerModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">
+                    <h1 class="modal-title fs-5">
                         Перевести игрока в {{ currentTeamForModal?.name }}
-                    </h5>
+                    </h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Выберите игрока для перевода</label>
-                        <select class="form-select" v-model="transferPlayerData.player_id">
-                            <option value="" disabled>Выберите игрока...</option>
-                            <option v-for="player in getPlayersNotInTeam()" :key="player.id" :value="player.id">
-                                {{ player.nickname }} 
-                                <template v-if="player.team"> - {{ player.team.name }}</template>
-                                <template v-else> - Без команды</template>
-                            </option>
-                        </select>
+                    <div class="row mb-2">
+                        <div class="col-12">
+                            <div class="form-floating">
+                                <select class="form-select" v-model="transferPlayerData.player_id">
+                                    <option v-for="player in getPlayersNotInTeam()" :value="player.id">
+                                        {{ player.nickname }}
+                                        <template v-if="player.team"> - {{ player.team.name }}</template>
+                                        <template v-else> - Без команды</template>
+                                    </option>
+                                </select>
+                                <label>Выберите игрока для перевода</label>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div v-if="getPlayersInTeam().length > 0" class="mt-3">
-                        <h6>Текущие игроки в команде:</h6>
+
+                    <div v-if="getPlayersInTeam().length > 0" class="col-auto m-1">
+                        <label>Текущие игроки в команде:</label>
                         <ul class="list-group">
-                            <li v-for="player in getPlayersInTeam()" :key="player.id" class="list-group-item">
+                            <li v-for="player in getPlayersInTeam()" class="list-group-item">
                                 {{ player.nickname }} ({{ player.role }})
                             </li>
                         </ul>
@@ -298,9 +347,10 @@ function getPlayersInTeam() {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        Отмена
+                        Закрыть
                     </button>
-                    <button type="button" class="btn btn-primary" @click="onTransferPlayer" :disabled="!transferPlayerData.player_id" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-primary" @click="onTransferPlayer"
+                        :disabled="!transferPlayerData.player_id" data-bs-dismiss="modal">
                         Перевести игрока
                     </button>
                 </div>
@@ -309,7 +359,7 @@ function getPlayersInTeam() {
     </div>
 
     <!-- редактирование в модальном окне-->
-    <div class="modal" id="editTeamModal" tabindex="-1">
+    <div class="modal fade" id="editTeamModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -378,7 +428,7 @@ function getPlayersInTeam() {
     </div>
 
     <!-- добавление -->
-    <form @submit.prevent.stop="onTeamAdd">
+    <form v-if="is_staff" @submit.prevent.stop="onTeamAdd">
         <div class="row m-2 ">
             <div class="col">
                 <div class="form-floating">
@@ -394,7 +444,7 @@ function getPlayersInTeam() {
             </div>
             <div class="col-auto">
                 <input class="form-control" type="file" ref="teamsPictureRef" @change="teamsAddPictureChange" />
-                                <img :src="teamToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
+                <img :src="teamToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
                     @click="openImagePreview(teamToAddImageUrl)" data-bs-toggle="modal"
                     data-bs-target="#imagePreviewModal">
             </div>
@@ -407,23 +457,38 @@ function getPlayersInTeam() {
     </form>
 
     <!-- вывод и кнопки -->
+    <div v-if="teams.length == 0 && !loading" style="text-align: center;">
+        <h4>Команд не найдено</h4>
+    </div>
+    <div v-else-if="teams.length == 0 && loading" style="text-align: center; margin: 1rem;">
+        <h4>Загрузка команд...</h4>
+    </div>
     <div v-for="t in teams" class="output-item">
         <div>
-            {{ t.id }} {{ t.name }} {{ t.country }}
-            <div v-show="t.logo"><img :src="t.logo" style="max-height: 150px; cursor: pointer;" :alt="'Логотип команды ' + t.name"
-                    @click="openImagePreview(t.logo)" data-bs-toggle="modal" data-bs-target="#imagePreviewModal"></div>
+            <div>{{ t.name }}</div>
+            <div>{{ t.country }}</div>
+            <div v-show="t.logo"><img :src="t.logo" style="max-height: 150px; cursor: pointer;"
+                    :alt="'Логотип команды ' + t.name" @click="openImagePreview(t.logo)" data-bs-toggle="modal"
+                    data-bs-target="#imagePreviewModal"></div>
         </div>
         <div>
-            <button class="btn btn-primary m-1" @click="prepareAddPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#addPlayerModal">
+            <button class="btn btn-warning m-1" @click="openTeamStats(t)" data-bs-toggle="modal"
+                data-bs-target="#teamStatsModal">
+                Призовые места
+            </button>
+            <button class="btn btn-primary m-1" @click="prepareAddPlayerModal(t)" data-bs-toggle="modal"
+                data-bs-target="#addPlayerModal">
                 Добавить игрока
             </button>
-            <button class="btn btn-secondary m-1" @click="prepareTransferPlayerModal(t)" data-bs-toggle="modal" data-bs-target="#transferPlayerModal">
+            <button v-if="is_staff" class="btn btn-secondary m-1" @click="prepareTransferPlayerModal(t)"
+                data-bs-toggle="modal" data-bs-target="#transferPlayerModal">
                 Перевести игрока
             </button>
-            <button class="btn btn-success m-1" @click="onTeamEditClick(t)" data-bs-toggle="modal" data-bs-target="#editTeamModal">
+            <button class="btn btn-success m-1" @click="onTeamEditClick(t)" data-bs-toggle="modal"
+                data-bs-target="#editTeamModal">
                 Редактировать
             </button>
-            <button class="btn btn-danger m-1" @click="onRemoveClickTeam(t)">
+            <button v-if="is_staff" class="btn btn-danger m-1" @click="onRemoveClickTeam(t)">
                 Удалить
             </button>
         </div>
@@ -445,6 +510,4 @@ function getPlayersInTeam() {
     gap: 8px;
     justify-content: center;
 }
-
-
 </style>

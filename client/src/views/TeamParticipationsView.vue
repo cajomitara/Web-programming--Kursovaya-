@@ -7,7 +7,7 @@ import { storeToRefs } from 'pinia';
 
 const userStore = useUserStore();
 const {
-    userInfo
+    is_staff
 } = storeToRefs(userStore)
 
 const team_parts = ref([]);
@@ -18,6 +18,9 @@ const tournaments = ref([]);
 const teams = ref([]);
 
 const loading = ref(false);
+
+const selectedTournament = ref("")
+const selectedTeam = ref("")
 
 onBeforeMount(async () => {
     await fetchItems();
@@ -72,11 +75,24 @@ async function onTeamPartEditClick(team_part) {
     };
 }
 
+function filterTeamParts() {
+    let filtered = team_parts.value;
+
+    if (selectedTournament.value) {
+        filtered = filtered.filter(tp => tp.tournament?.id == selectedTournament.value);
+    }
+
+    if (selectedTeam.value) {
+        filtered = filtered.filter(tp => tp.team?.id == selectedTeam.value);
+    }
+
+    return filtered;
+}
 </script>
 
 <template>
     <!-- редактирование в модальном окне-->
-    <div class="modal" id="editTeamPartModal" tabindex="-1">
+    <div class="modal fade" id="editTeamPartModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -86,36 +102,30 @@ async function onTeamPartEditClick(team_part) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="modal-body">
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <select class="form-select" v-model="team_partToEdit.tournament_id" required>
-                                        <option :value="to.id" v-for="to in tournaments">{{ to.name }}</option>
-                                    </select>
-                                    <label>Турнир</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <select class="form-select" v-model="team_partToEdit.team_id" required>
-                                        <option :value="te.id" v-for="te in teams">{{ te.name }}</option>
-                                    </select>
-                                    <label>Команда</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input type="number" class="form-control" v-model="team_partToEdit.place" />
-                                    <label>Занятое место</label>
-                                </div>
-                            </div>
+
+                    <div class="col-auto mb-2">
+                        <div class="form-floating">
+                            <select class="form-select" v-model="team_partToEdit.tournament_id" required>
+                                <option :value="to.id" v-for="to in tournaments">{{ to.name }}</option>
+                            </select>
+                            <label>Турнир</label>
                         </div>
                     </div>
+                    <div class="col-auto mb-2">
+                        <div class="form-floating">
+                            <select class="form-select" v-model="team_partToEdit.team_id" required>
+                                <option :value="te.id" v-for="te in teams">{{ te.name }}</option>
+                            </select>
+                            <label>Команда</label>
+                        </div>
+                    </div>
+                    <div class="col-auto mb-2">
+                        <div class="form-floating">
+                            <input type="number" class="form-control" v-model="team_partToEdit.place" />
+                            <label>Занятое место</label>
+                        </div>
+                    </div>
+
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -130,7 +140,7 @@ async function onTeamPartEditClick(team_part) {
     </div>
 
     <!-- добавление -->
-    <form @submit.prevent.stop="onTeamPartsAdd">
+    <form v-if='is_staff' @submit.prevent.stop="onTeamPartsAdd">
         <div class="row m-2 ">
             <div class="col-3">
                 <div class="form-floating">
@@ -163,20 +173,52 @@ async function onTeamPartEditClick(team_part) {
         </div>
     </form>
 
+    <!-- фильтрация -->
+    <div class="row m-2">
+        <h6>Фильтры</h6>
+        <div class="row">
+            <div class="col-auto">
+                <div class="form-floating">
+                    <select class="form-select" v-model="selectedTournament">
+                        <option value="">Все турниры</option>
+                        <option :value="to.id" v-for="to in tournaments">{{ to.name }}</option>
+                    </select>
+                    <label>Турнир</label>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="form-floating">
+                    <select class="form-select" v-model="selectedTeam">
+                        <option value="">Все команды</option>
+                        <option :value="te.id" v-for="te in teams">{{ te.name }}</option>
+                    </select>
+                    <label>Команда</label>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- вывод и кнопки -->
-    <div v-for="tp in team_parts" class="output-item">
+    <div v-if="filterTeamParts().length == 0 && !loading" style="text-align: center;">
+        <h4>Участий команд в турнирах не найдено</h4>
+    </div>
+    <div v-else-if="filterTeamParts().length == 0 && loading" style="text-align: center; margin: 1rem;">
+        <h4>Загрузка участий команд в турнирах...</h4>
+    </div>
+    <div v-for="tp in filterTeamParts()" class="output-item">
         <div>
-            {{ tp.tournament?.name }} {{ tp.team?.name }} {{ tp.place }}
+            <div>{{ tp.tournament?.name }}</div>
+            <div v-if="is_staff">{{ tp.team?.name }}</div>
+            <div><b>Место: </b>{{ tp.place }}</div>
         </div>
         <div>
-            <button class="btn btn-success" @click="onTeamPartEditClick(tp)" data-bs-toggle="modal"
+            <button v-if="is_staff" class="btn btn-success" @click="onTeamPartEditClick(tp)" data-bs-toggle="modal"
                 data-bs-target="#editTeamPartModal">
                 Редактировать
             </button>
         </div>
         <div>
-            <button class="btn btn-danger" @click="onRemoveClickTeamParts(tp)">
+            <button v-if="is_staff" class="btn btn-danger" @click="onRemoveClickTeamParts(tp)">
                 Удалить
             </button>
         </div>

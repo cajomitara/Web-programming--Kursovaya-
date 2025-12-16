@@ -1,7 +1,5 @@
 <script setup>
-import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
-import Cookies from 'js-cookie';
 import { useUserStore } from './stores/user_store';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
@@ -9,11 +7,9 @@ import { useRouter } from 'vue-router';
 const userStore = useUserStore();
 const {
     username,
-    is_authenticated
+    is_authenticated,
+    is_staff
 } = storeToRefs(userStore)
-
-// const user = ref([])
-// const username = ref();
 
 const router = useRouter();
 
@@ -35,34 +31,38 @@ async function onLogout() {
                 <div class="collapse navbar-collapse justify-content-between" id="navbarNav">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link" aria-current="page" href="/tournaments">Турниры</a>
+                            <a v-if="is_staff" class="nav-link" aria-current="page" href="/tournaments">Турниры</a>
+                            <a v-if="!is_staff" class="nav-link" aria-current="page" href="/tournaments">Мои турниры</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/teams">Команды</a>
+                            <a v-if="is_staff" class="nav-link" aria-current="page" href="/teams">Команды</a>
+                            <a v-if="!is_staff" class="nav-link" aria-current="page" href="/teams">Моя команда</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/players">Игроки</a>
+                            <a v-if="is_staff" class="nav-link" aria-current="page" href="/players">Игроки</a>
+                            <a v-if="!is_staff" class="nav-link" aria-current="page" href="/players">Игроки моей команды</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/teamparticipations">Участия команд в турнирах</a>
+                            <a v-if="is_staff" class="nav-link" aria-current="page" href="/teamparticipations">Участия команд в турнирах</a>
+                            <a v-if="!is_staff" class="nav-link" aria-current="page" href="/teamparticipations">Участия моей команды в турнирах</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/matches">Матчи</a>
+                            <a v-if="is_staff" class="nav-link" aria-current="page" href="/matches">Матчи</a>
+                            <a v-if="!is_staff" class="nav-link" aria-current="page" href="/matches">Матчи моей команды</a>
                         </li>
                     </ul>
 
                     <ul class="navbar-nav">
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
-                                aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 {{ username }}
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a class="dropdown-item" href="/admin">Админка</a>
+                                    <a v-if="is_staff" class="dropdown-item" href="/admin">Админка</a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" @click="onLogout">Выйти</a>
+                                    <a class="dropdown-item" style="cursor: pointer;" @click="onLogout">Выйти</a>
                                 </li>
                             </ul>
                         </li>
@@ -77,4 +77,6 @@ async function onLogout() {
     </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+
+</style>

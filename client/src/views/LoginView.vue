@@ -33,6 +33,10 @@ async function onLoginFormSubmit() {
 </script>
 
 <template>
+    <div style="text-align: center;">
+        <h1>dotaesports</h1>
+        <p>Система управления турнирами</p>
+    </div>
     <div class="container" style="display: flex; justify-content: center; align-items: center;">
         <form @submit.prevent.stop="onLoginFormSubmit" class="form d-flex flex-column" style="gap: 8px; padding: 3px">
             <div>

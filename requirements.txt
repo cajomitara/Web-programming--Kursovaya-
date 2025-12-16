@@ -4,3 +4,5 @@ pytest-django==4.11.1
 model-bakery==1.20.5
 pillow==12.0.0
 faker==38.2.0
+openpyxl==3.1.5
+python_docx==1.2.0

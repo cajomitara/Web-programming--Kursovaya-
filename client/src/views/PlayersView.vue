@@ -1,13 +1,13 @@
 <script setup>
 import { computed, ref, onBeforeMount } from 'vue';
 import axios from "axios";
-import Cookies from 'js-cookie';
 import { useUserStore } from '../stores/user_store';
 import { storeToRefs } from 'pinia';
 
 const userStore = useUserStore();
 const {
-    userInfo
+    is_staff,
+    username
 } = storeToRefs(userStore)
 
 const players = ref([]);
@@ -21,14 +21,18 @@ const playersEditPictureRef = ref();
 const previewImageUrl = ref('');
 
 const teams = ref([]);
-// const users = ref([]);
 
 const deletePhoto = ref(false);
 const loading = ref(false);
 
+const selectedRole = ref("")
+const selectedTeam = ref("")
+
+const playerHistory = ref([]);
+const selectedPlayer = ref(null);
+
 onBeforeMount(async () => {
     await fetchItems();
-    axios.defaults.headers.common['X-CSRFToken'] = Cookies.get("csrftoken");
 })
 
 async function fetchItems() {
@@ -41,10 +45,7 @@ async function fetchItems() {
     console.log(r1.data);
     teams.value = r1.data;
 
-    // const r2 = await axios.get("/api/users/");
-    // console.log(r2.data);
-    // users.value = r2.data;
-    // loading.value = false;
+    loading.value = false;
 }
 
 
@@ -60,7 +61,6 @@ async function onPlayerAdd() {
         formData.append('photo', playersPictureRef.value.files[0]);
     }
 
-    // formData.set('user_id', playerToAdd.value.user_id)
     formData.set('nickname', playerToAdd.value.nickname)
     formData.set('real_name', playerToAdd.value.real_name)
     formData.set('role', playerToAdd.value.role)
@@ -83,9 +83,14 @@ async function onRemoveClickPlayer(player) {
 }
 
 async function onUpdatePlayer() {
+    const haveToUpdate = ref(false)
+
+    if (username.value == playerToEdit.value.original_nickname) {
+        haveToUpdate.value = true
+    }
+
     const formData = new FormData();
 
-    // formData.set('user_id', playerToEdit.value.user_id)
     formData.set('nickname', playerToEdit.value.nickname)
     formData.set('real_name', playerToEdit.value.real_name)
     formData.set('role', playerToEdit.value.role)
@@ -107,6 +112,10 @@ async function onUpdatePlayer() {
     playerToEditImageUrl.value = null;
     playersEditPictureRef.value.value = '';
     deletePhoto.value = false;
+
+    if (haveToUpdate.value) {
+        window.location.reload();
+    }
 }
 
 async function playersAddPictureChange() {
@@ -129,10 +138,9 @@ async function playersEditPictureChange() {
 async function onPlayerEditClick(player) {
     playerToEdit.value = {
         ...player,
-
+        original_nickname: player.nickname,
         team_id: player.team?.id
     };
-    // user_id: player.user?.id,
 
     playerToEditImageUrl.value = null;
     deletePhoto.value = false;
@@ -152,11 +160,77 @@ function onDeletePhotoClick() {
 function openImagePreview(imageUrl) {
     previewImageUrl.value = imageUrl;
 }
+
+function filterPlayers() {
+    let filtered = players.value;
+
+    if (selectedRole.value) {
+        filtered = filtered.filter(p => p.role === selectedRole.value);
+    }
+
+    if (selectedTeam.value) {
+        filtered = filtered.filter(p => p.team?.id == selectedTeam.value);
+    }
+
+    return filtered;
+}
+
+async function exportPlayersToExcel() {
+    const response = await axios.get('/api/players/export-excel/', {
+        responseType: 'blob'
+    });
+
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const filename = `players_${date}.xlsx`;
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+}
+
+async function openPlayerHistory(player) {
+    selectedPlayer.value = player;
+    const response = await axios.get(`/api/players/${player.id}/team_history/`);
+    playerHistory.value = response.data;
+}
 </script>
 
 <template>
+    <!-- статистика -->
+    <div class="modal fade" id="playerHistoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5">История переходов игрока {{ selectedPlayer?.nickname }}</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="playerHistory.length == 0">
+                        Нет истории переходов
+                    </div>
+                    <div v-else>
+                        <div v-for="(record, index) in playerHistory" :key="index">
+                            <div>{{ index + 1 }}:</div>
+                            <div>Команда: {{ record.team }}</div>
+                            <div>Дата: {{ record.date }}</div>
+                            <div>Менеджер: {{ record.manager }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- просмотр картинок в модальном окне -->
-    <div class="modal" id="imagePreviewModal" tabindex="-1">
+    <div class="modal fade" id="imagePreviewModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-body text-center">
@@ -170,7 +244,7 @@ function openImagePreview(imageUrl) {
     </div>
 
     <!-- редактирование в модальном окне-->
-    <div class="modal" id="editTournamentModal" tabindex="-1">
+    <div class="modal fade" id="editTournamentModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -183,7 +257,7 @@ function openImagePreview(imageUrl) {
                     <div class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
-                                <input type="text" class="form-control" v-model="playerToEdit.nickname" />
+                                <input type="text" class="form-control" v-model="playerToEdit.nickname" required />
                                 <label>Никнейм</label>
                             </div>
                         </div>
@@ -192,7 +266,7 @@ function openImagePreview(imageUrl) {
                     <div class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
-                                <input type="text" class="form-control" v-model="playerToEdit.real_name" />
+                                <input type="text" class="form-control" v-model="playerToEdit.real_name" required />
                                 <label>Настоящее имя</label>
                             </div>
                         </div>
@@ -212,7 +286,7 @@ function openImagePreview(imageUrl) {
                             </div>
                         </div>
                     </div>
-                    <div class="row mb-2">
+                    <div v-if="is_staff" class="row mb-2">
                         <div class="col-12">
                             <div class="form-floating">
                                 <select class="form-select" v-model="playerToEdit.team_id" required>
@@ -263,11 +337,11 @@ function openImagePreview(imageUrl) {
     </div>
 
     <!-- добавление -->
-    <form @submit.prevent.stop="onPlayerAdd">
+    <form v-if="is_staff" @submit.prevent.stop="onPlayerAdd">
         <div class="row m-2">
             <div class="col-auto">
                 <div class="form-floating">
-                    <input type="text" class="form-control" v-model="playerToAdd.nickname" />
+                    <input type="text" class="form-control" v-model="playerToAdd.nickname" required />
                     <label for="floatingInput">Никнейм</label>
                 </div>
             </div>
@@ -299,7 +373,7 @@ function openImagePreview(imageUrl) {
             </div>
             <div class="col-auto">
                 <input class="form-control" type="file" ref="playersPictureRef" @change="playersAddPictureChange" />
-                                <img :src="playerToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
+                <img :src="playerToAddImageUrl" style="max-height:150px; margin-top: 1rem; cursor: pointer;" alt=""
                     @click="openImagePreview(playerToAddImageUrl)" data-bs-toggle="modal"
                     data-bs-target="#imagePreviewModal">
             </div>
@@ -311,15 +385,70 @@ function openImagePreview(imageUrl) {
         </div>
     </form>
 
+    <!-- фильтрация -->
+    <div class="row m-2">
+        <h6>Фильтры</h6>
+        <div class="row">
+            <div class="col-auto">
+                <div class="form-floating">
+                    <select class="form-select" v-model="selectedRole">
+                        <option value="">Любая роль</option>
+                        <option value="CARRY">Керри</option>
+                        <option value="MIDLANER">Мидлейнер</option>
+                        <option value="HARDLINER">Тройка</option>
+                        <option value="SEMISUPPORT">Четвёрка</option>
+                        <option value="FULLSUPPORT">Пятёрка</option>
+                    </select>
+                    <label>Роль</label>
+                </div>
+            </div>
+            <div class="col-auto">
+                <div class="form-floating">
+                    <select class="form-select" v-model="selectedTeam">
+                        <option value="">Любая команда</option>
+                        <option :value="t.id" v-for="t in teams">{{ t.name }}</option>
+                    </select>
+                    <label>Команда</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- экспорт в excel -->
+    <div class="row m-2" style="justify-content: end;">
+        <div v-if="is_staff" class="col-auto">
+            <div class="btn-group" role="group">
+                <button class="btn btn-outline-success" @click="exportPlayersToExcel">
+                    Экспорт всех игроков в Excel-таблицу
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- вывод и кнопки -->
-    <div v-for="p in players" class="output-item">
+    <div v-if="filterPlayers().length == 0 && !loading" style="text-align: center;">
+        <h4>Игроков не найдено</h4>
+    </div>
+    <div v-else-if="filterPlayers().length == 0 && loading" style="text-align: center; margin: 1rem;">
+        <h4>Загрузка игроков...</h4>
+    </div>
+    <div v-for="p in filterPlayers()" class="output-item">
         <div>
-            {{ p.nickname }} {{ p.real_name }} {{ p.role }} {{ p.team?.name }}
+            <b v-if="p.nickname == username">Это вы!</b>
+            <div>{{ p.nickname }}</div>
+            <div>{{ p.real_name }}</div>
+            <div>{{ p.role }}</div>
+            <div v-if="is_staff">{{ p.team?.name }}</div>
             <div v-show="p.photo">
                 <img :src="p.photo" style="max-height: 150px; cursor: pointer;" :alt="`Фото игрока ${p.nickname}`"
                     @click="openImagePreview(p.photo)" data-bs-toggle="modal" data-bs-target="#imagePreviewModal">
             </div>
+        </div>
+        <div>
+            <button class="btn btn-secondary" @click="openPlayerHistory(p)" data-bs-toggle="modal"
+                data-bs-target="#playerHistoryModal">
+                История переходов
+            </button>
         </div>
         <div>
             <button class="btn btn-success" @click="onPlayerEditClick(p)" data-bs-toggle="modal"
@@ -328,7 +457,7 @@ function openImagePreview(imageUrl) {
             </button>
         </div>
         <div>
-            <button class="btn btn-danger" @click="onRemoveClickPlayer(p)">
+            <button v-if="p.nickname != username" class="btn btn-danger" @click="onRemoveClickPlayer(p)">
                 Удалить
             </button>
         </div>
@@ -346,7 +475,7 @@ function openImagePreview(imageUrl) {
     border: 2px solid silver;
     border-radius: 10px;
     display: grid;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     gap: 8px;
     justify-content: center;
 }

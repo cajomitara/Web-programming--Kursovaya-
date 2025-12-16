@@ -6,7 +6,6 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username']
-        read_only_fields = ['id']
 
 class TournamentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,11 +18,9 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'country', 'logo']
 
 class PlayerSerializer(serializers.ModelSerializer):
+    # создание пользователя при создании игрока
     def create(self, validated_data):
         nickname = validated_data.get('nickname')
-        
-        if not nickname:
-            raise serializers.ValidationError({"nickname": "Никнейм необходим"})
         
         if Player.objects.filter(nickname=nickname).exists():
             raise serializers.ValidationError({"nickname": "Игрок с таким никнеймом уже существует"})
@@ -38,40 +35,54 @@ class PlayerSerializer(serializers.ModelSerializer):
         )
         
         validated_data['user'] = user
-
+        
         team = validated_data.get('team')
 
         player = super().create(validated_data)
-
-        if team:
-            PlayerTeamHistory.objects.create(
-                player=player,
-                team=team,
-                manager=self.context['request'].user if self.context.get('request') else None
-            )
         
+        request = self.context.get('request')
+        manager = request.user if request else None
+            
+        PlayerTeamHistory.objects.create(
+            player=player,
+            team=team,
+            manager=manager
+        )
+
         return player
     
+    # изменение пользователя при изменении игрока
     def update(self, instance, validated_data):
-        old_team = instance.team
-
         nickname = validated_data.get('nickname')
+
         if nickname and nickname != instance.nickname:
-            if Player.objects.filter(nickname=nickname).exists():
+            if Player.objects.filter(nickname=nickname).exclude(id=instance.id).exists():
                 raise serializers.ValidationError({"nickname": "Игрок с таким никнеймом уже существует"})
+            
+            user = instance.user
+            if user:
+                if User.objects.filter(username=nickname).exclude(id=user.id).exists():
+                    raise serializers.ValidationError({"nickname": "Пользователь с таким именем уже существует"})
+                
+                user.username = nickname
+                user.save()
         
-        updated_player = super().update(instance, validated_data)
-        
-        new_team = updated_player.team
-        
-        if old_team != new_team:
+        old_team = instance.team
+        new_team = validated_data.get('team', old_team)
+
+        player = super().update(instance, validated_data)
+
+        if new_team != old_team:
+            request = self.context.get('request')
+            manager = request.user
+            
             PlayerTeamHistory.objects.create(
-                player=updated_player,
+                player=player,
                 team=new_team,
-                manager=self.context['request'].user if self.context.get('request') else None,
+                manager=manager
             )
-        
-        return updated_player
+        return player
+    
     
     team = TeamSerializer(read_only=True)
     
@@ -79,7 +90,8 @@ class PlayerSerializer(serializers.ModelSerializer):
         queryset=Team.objects.all(), 
         source='team', 
         write_only=True,
-        required=False
+        required=False,
+        allow_null=True
     )
 
     # team_history = serializers.SerializerMethodField(read_only=True)
@@ -174,4 +186,3 @@ class PlayerTeamHistorySerializer(serializers.ModelSerializer):
         model = PlayerTeamHistory
         fields = ['id', 'player', 'player_id', 'team', 'team_id', 
                  'manager', 'manager_id', 'created_at']
-        read_only_fields = ['id', 'created_at']

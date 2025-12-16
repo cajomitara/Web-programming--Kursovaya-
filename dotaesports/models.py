@@ -31,7 +31,6 @@ class Tournament(models.Model):
         return self.name
 
 class Team(models.Model):
-    by_user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
     name = models.TextField('Название', null=True)
     country = models.TextField('Страна происхождения', null=True)
 
@@ -46,7 +45,6 @@ class Team(models.Model):
 
 class Player(models.Model):
     user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
-    # user = models.ForeignKey("auth.User", verbose_name="Создано пользователем", on_delete=models.CASCADE, null=True)
 
     nickname = models.TextField('Псевдоним', null=True)
     real_name = models.TextField('Настоящее имя', null=True)
@@ -66,7 +64,7 @@ class Player(models.Model):
         null=True
     )
 
-    team = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, verbose_name="Команда")
+    team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, verbose_name="Команда")
 
     class Meta:
         verbose_name = "Игрок"
@@ -77,10 +75,9 @@ class Player(models.Model):
     
 
 class PlayerTeamHistory(models.Model):
-    player = models.ForeignKey(Player, on_delete=models.CASCADE, null=True, 
-                              verbose_name="Кого переводили", related_name='team_history')
-    manager = models.ForeignKey("auth.User", verbose_name="Кто переводил", on_delete=models.CASCADE, null=True, related_name="player_team_history")
-    team = models.ForeignKey("Team", on_delete=models.CASCADE, null=True, verbose_name="Команда")
+    player = models.ForeignKey("Player", on_delete=models.SET_NULL, null=True, verbose_name="Кого переводили", related_name='team_history')
+    manager = models.ForeignKey("auth.User", verbose_name="Кто переводил", on_delete=models.SET_NULL, null=True, related_name="player_team_history")
+    team = models.ForeignKey("Team", on_delete=models.SET_NULL, null=True, verbose_name="Команда")
     created_at = models.DateTimeField(null=True, auto_now_add=True)
 
     class Meta:
@@ -92,8 +89,8 @@ class PlayerTeamHistory(models.Model):
         return f"{self.player.nickname if self.player else 'No player'} -> {self.team.name if self.team else 'No team'}"
 
 class TournamentTeamParticipation(models.Model):
-    tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, null=True, verbose_name="Турнир")
-    team = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, verbose_name="Команда")
+    tournament = models.ForeignKey('Tournament', on_delete=models.SET_NULL, null=True, verbose_name="Турнир")
+    team = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, verbose_name="Команда")
 
     place = models.IntegerField("Место", default=0, null=True)
     
@@ -104,10 +101,10 @@ class TournamentTeamParticipation(models.Model):
         verbose_name_plural = "Участия команды"
 
 class Match(models.Model):
-    tournament = models.ForeignKey('Tournament', on_delete=models.CASCADE, null=True, verbose_name="Турнир")
+    tournament = models.ForeignKey('Tournament', on_delete=models.SET_NULL, null=True, verbose_name="Турнир")
     
-    radiant = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='radiant_matches', verbose_name="Силы Света")
-    dire = models.ForeignKey('Team', on_delete=models.CASCADE, null=True, related_name='dire_matches', verbose_name="Силы Тьмы")
+    radiant = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, related_name='radiant_matches', verbose_name="Силы Света")
+    dire = models.ForeignKey('Team', on_delete=models.SET_NULL, null=True, related_name='dire_matches', verbose_name="Силы Тьмы")
 
     start_date = models.DateTimeField('Дата начала', null=True)
 
