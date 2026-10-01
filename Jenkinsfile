@@ -9,52 +9,43 @@ pipeline {
             }
         }
 
-        // установка зависимостей для бэка
-        stage('Install Backend Dependencies') {
+        // сборка образов
+        stage('Build') {
             steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                '''
+                sh 'docker compose build'
             }
         }
 
-        // запуск тестов бэка
+        // развёртывание контейнера бэкенда для запуска тестов
         stage('Backend Tests') {
             steps {
-                sh '''
-                    . venv/bin/activate
-                    python manage.py test
-                '''
+                sh 'docker compose run --rm backend python manage.py test'
             }
         }
 
-        // установка зависимостей для фронта
-        stage('Install Frontend Dependencies') {
+        // развёртывание контейнеров
+        stage('Up') {
             steps {
-                dir('client') {
-                    sh 'npm install'
-                }
+                sh 'docker compose up -d'
+                sh 'sleep 5'
             }
         }
 
-        // сборка фронта
-        stage('Frontend Build') {
+        // смок тест доступа к приложению
+        stage('Smoke Test') {
             steps {
-                dir('client') {
-                    sh 'npm run build'
-                }
+                sh 'docker compose exec -T nginx wget -qO- http://localhost/ > /dev/null'
             }
         }
     }
 
     post {
+        always {
+            sh 'docker compose down -v || true'
+        }
         success {
             echo 'CI pipeline completed successfully!'
         }
-
         failure {
             echo 'CI pipeline failed!'
         }
