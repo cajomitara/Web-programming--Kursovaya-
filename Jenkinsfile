@@ -48,6 +48,22 @@ pipeline {
                 }
             }
         }
+
+        // запуск бэка
+        stage('Backend Deployment') {
+            steps {
+                sh 'python manage.py runserver 0.0.0.0:8000'
+            }
+        }
+
+        // запуск фронта
+        stage('Frontend Deployment') {
+            steps {
+                dir('client') {
+                    sh 'npm run dev -- --host 0.0.0.0'
+                }
+            }
+        }
     }
 
     post {
