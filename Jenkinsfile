@@ -52,7 +52,10 @@ pipeline {
         // запуск бэка
         stage('Backend Deployment') {
             steps {
-                sh 'python manage.py runserver 0.0.0.0:8000'
+                sh '''
+                . venv/bin/activate
+                python manage.py runserver 0.0.0.0:8000
+                '''
             }
         }
 
