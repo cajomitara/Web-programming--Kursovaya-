@@ -54,7 +54,8 @@ pipeline {
             steps {
                 sh '''
                 . venv/bin/activate
-                python manage.py runserver 0.0.0.0:8000
+
+                nohup python manage.py runserver 0.0.0.0:8000 \ > backend.log 2>&1 &
                 '''
             }
         }
@@ -63,7 +64,7 @@ pipeline {
         stage('Frontend Deployment') {
             steps {
                 dir('client') {
-                    sh 'npm run dev -- --host 0.0.0.0'
+                    sh 'nohup npm run dev -- --host 0.0.0.0 \ > frontend.log 2>&1 &'
                 }
             }
         }
