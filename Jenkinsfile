@@ -53,9 +53,10 @@ pipeline {
         stage('Backend Deployment') {
             steps {
                 sh '''
-                . venv/bin/activate
+                    . venv/bin/activate
 
-                nohup python manage.py runserver 0.0.0.0:8000 \ > backend.log 2>&1 &
+                    JENKINS_NODE_COOKIE=dontKillMe
+                    nohup python manage.py runserver 0.0.0.0:8000 > backend.log 2>&1 &
                 '''
             }
         }
@@ -64,7 +65,10 @@ pipeline {
         stage('Frontend Deployment') {
             steps {
                 dir('client') {
-                    sh 'nohup npm run dev -- --host 0.0.0.0 \ > frontend.log 2>&1 &'
+                    sh '''
+                        JENKINS_NODE_COOKIE=dontKillMe
+                        nohup npm run dev -- --host 0.0.0.0 > frontend.log 2>&1 &
+                    '''
                 }
             }
         }
