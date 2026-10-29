@@ -1,17 +1,24 @@
 services:
   backend:
     build: .
+    image: cajodev/dotaesports:backend-${TAG:-latest}
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     environment:
       DB_PATH: /app/data/db.sqlite3
+    ports:
+      - "8000:8000"
     volumes:
       - sqlite_data:/app/data
 
   frontend:
     build: ./client
+    image: cajodev/dotaesports:frontend-${TAG:-latest}
+    ports:
+      - "5173:5173"
 
   nginx:
     build: ./nginx
+    image: cajodev/dotaesports:nginx-${TAG:-latest}
     ports:
       - "80:80"
     depends_on:
