@@ -53,7 +53,7 @@ pipeline {
         // смок тест нгинкса
         stage('Smoke Test') {
             steps {
-                sh 'docker compose exec -T nginx wget -qO- http://localhost/ > /dev/null'
+                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/ > /dev/null'
             }
         }
     }
