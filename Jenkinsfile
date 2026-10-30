@@ -48,6 +48,30 @@ pipeline {
                 }
             }
         }
+
+        // запуск бэка
+        stage('Backend Deployment') {
+            steps {
+                sh '''
+                    . venv/bin/activate
+
+                    JENKINS_NODE_COOKIE=dontKillMe
+                    nohup python manage.py runserver 0.0.0.0:8000 > backend.log 2>&1 &
+                '''
+            }
+        }
+
+        // запуск фронта
+        stage('Frontend Deployment') {
+            steps {
+                dir('client') {
+                    sh '''
+                        JENKINS_NODE_COOKIE=dontKillMe
+                        nohup npm run dev -- --host 0.0.0.0 > frontend.log 2>&1 &
+                    '''
+                }
+            }
+        }
     }
 
     post {
