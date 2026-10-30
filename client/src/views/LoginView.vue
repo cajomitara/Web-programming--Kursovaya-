@@ -42,7 +42,7 @@ async function onLoginFormSubmit() {
             <div>
                 <label class="form-label">Имя пользователя</label>
                 <input placeholder="Имя пользователя" type="formUsername" class="form-control" v-model="formUsername" />
-                <label class="form-label">Пароль</label>
+                <label class="form-label">НЕ ПАРОЛЬ</label>
                 <input placeholder="Пароль" type="formPassword" class="form-control" v-model="formPassword" />
             </div>
 
