@@ -53,6 +53,8 @@ pipeline {
         stage('Backend Deployment') {
             steps {
                 sh '''
+                    pkill -f "manage.py runserver" || true
+            
                     . venv/bin/activate
 
                     JENKINS_NODE_COOKIE=dontKillMe
@@ -66,6 +68,8 @@ pipeline {
             steps {
                 dir('client') {
                     sh '''
+                        pkill -f "vite" || true
+
                         JENKINS_NODE_COOKIE=dontKillMe
                         nohup npm run dev -- --host 0.0.0.0 > frontend.log 2>&1 &
                     '''
