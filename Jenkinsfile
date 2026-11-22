@@ -49,13 +49,13 @@ pipeline {
             }
         }
 
-        // деплой проекта
-        stage('Up') {
-            steps {
-                sh 'docker compose up -d'
-                sh 'sleep 5'
-            }
-        }
+        // // деплой проекта
+        // stage('Up') {
+        //     steps {
+        //         sh 'docker compose up -d'
+        //         sh 'sleep 5'
+        //     }
+        // }
 
         // смок тест нгинкса
         stage('Smoke Test') {
