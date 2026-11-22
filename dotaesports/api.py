@@ -9,12 +9,10 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment
 
 from django.http import HttpResponse
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate, login, logout
 from django.db.models import Count, Q
 
 from dotaesports.models import Tournament, Team, Player, TournamentTeamParticipation, Match, PlayerTeamHistory
-from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer, PlayerTeamHistorySerializer, UserSerializer
+from dotaesports.serializers import TournamentSerializer, TeamSerializer, PlayerSerializer, TournamentTeamParticipationSerializer, MatchSerializer, PlayerTeamHistorySerializer
 
 class TournamentViewset(
     mixins.CreateModelMixin,
@@ -31,7 +29,7 @@ class TournamentViewset(
         qs = super().get_queryset()
         
         if not self.request.user.is_staff and self.request.user.id:
-            user_player = Player.objects.get(user=self.request.user)
+            user_player = Player.objects.get(auth_user_id=self.request.user.id)
             user_team = user_player.team
             
             team_tournament_ids = TournamentTeamParticipation.objects.filter(team=user_team).values_list('tournament_id',flat=True)
@@ -117,7 +115,7 @@ class TeamViewset(
         qs = super().get_queryset()
         
         if not self.request.user.is_staff and self.request.user.id:
-            user_player = Player.objects.get(user=self.request.user)
+            user_player = Player.objects.get(auth_user_id=self.request.user.id)
             qs = qs.filter(id=user_player.team.id)
         
         return qs
@@ -159,15 +157,9 @@ class PlayerViewset(
     def get_queryset(self):
         qs = super().get_queryset()
 
-        user_team = Team()
-
-        for player in qs:
-            if player.user == self.request.user:
-                user_team = player.team
-                break
-
         if not self.request.user.is_staff and self.request.user.id:
-            qs = qs.filter(team=user_team)
+            user_player = qs.filter(auth_user_id=self.request.user.id).first()
+            qs = qs.filter(team=user_player.team) if user_player else qs.none()
 
         return qs
     
@@ -182,7 +174,7 @@ class PlayerViewset(
             data.append({
                 'team': record.team.name if record.team else 'Без команды',
                 'date': record.created_at.strftime('%d.%m.%Y %H:%M') if record.created_at else '',
-                'manager': record.manager.username if record.manager else 'Неизвестно'
+                'manager': record.manager_username or 'Неизвестно'
             })
         
         return Response(data)
@@ -257,7 +249,7 @@ class TournamentTeamParticipationViewset(
         qs = super().get_queryset()
 
         if not self.request.user.is_staff and self.request.user.id:
-            user_player = Player.objects.get(user=self.request.user)
+            user_player = Player.objects.get(auth_user_id=self.request.user.id)
             qs = qs.filter(team=user_player.team)
         
         return qs
@@ -277,60 +269,12 @@ class MatchViewset(
         qs = super().get_queryset()
         
         if not self.request.user.is_staff and self.request.user.id:
-            user_player = Player.objects.get(user=self.request.user)
+            user_player = Player.objects.get(auth_user_id=self.request.user.id)
             user_team = user_player.team
 
             qs = qs.filter(radiant=user_team) | qs.filter(dire=user_team)
         
         return qs
-
-class UserViewset(mixins.CreateModelMixin,
-    mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
-    mixins.ListModelMixin,
-    GenericViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-    @action(url_path="my", methods=["GET"], detail=False)
-    def get_my(self, *args, **kwargs):
-        return Response({
-            'username': self.request.user.username,
-            'is_authenticated': self.request.user.is_authenticated,
-            'is_staff': self.request.user.is_staff
-        })
-    
-    @action(url_path="login", methods=["POST"], detail=False)
-    def process_login(self, *args, **kwargs):
-        class LoginSerializer(serializers.Serializer):
-            username = serializers.CharField()
-            password = serializers.CharField()
-
-        serializer = LoginSerializer(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-
-        username = serializer.validated_data['username']
-        password = serializer.validated_data['password']
-        
-        user = authenticate(username=username, password=password)
-        if user:
-            login(request=self.request, user=user)
-        else:
-            return Response({
-                "status": "Failed!"
-            }, status=401)
-        return Response({
-                "status": "Success!"
-        })
-    
-    @action(url_path="logout", methods=["POST"], detail=False)
-    def process_logout(self, *args, **kwargs):
-        logout(self.request)
-
-        return Response({
-                "status": "Success!"
-        })
 
 class PlayerTeamHistoryViewset(
     mixins.CreateModelMixin,
@@ -348,7 +292,7 @@ class PlayerTeamHistoryViewset(
 
         if not self.request.user.is_staff and self.request.user.id:
             try:
-                user_player = Player.objects.get(user=self.request.user)
+                user_player = Player.objects.get(auth_user_id=self.request.user.id)
                 qs = qs.filter(player__team=user_player.team)
             except Player.DoesNotExist:
                 qs = qs.none()

@@ -44,7 +44,8 @@ class Team(models.Model):
         return self.name
 
 class Player(models.Model):
-    user = models.OneToOneField('auth.User', on_delete=models.CASCADE, null=True, verbose_name="Пользователь")
+    # ссылка на учётную запись в сервисе авторизации (другая БД, поэтому не ForeignKey)
+    auth_user_id = models.IntegerField("ID пользователя в сервисе авторизации", null=True, blank=True, unique=True)
 
     nickname = models.TextField('Псевдоним', null=True)
     real_name = models.TextField('Настоящее имя', null=True)
@@ -76,7 +77,9 @@ class Player(models.Model):
 
 class PlayerTeamHistory(models.Model):
     player = models.ForeignKey("Player", on_delete=models.SET_NULL, null=True, verbose_name="Кого переводили", related_name='team_history')
-    manager = models.ForeignKey("auth.User", verbose_name="Кто переводил", on_delete=models.SET_NULL, null=True, related_name="player_team_history")
+    # кто переводил: ID из сервиса авторизации + имя на момент перевода
+    manager_user_id = models.IntegerField("ID менеджера в сервисе авторизации", null=True, blank=True)
+    manager_username = models.CharField("Кто переводил", max_length=150, null=True, blank=True)
     team = models.ForeignKey("Team", on_delete=models.SET_NULL, null=True, verbose_name="Команда")
     created_at = models.DateTimeField(null=True, auto_now_add=True)
 

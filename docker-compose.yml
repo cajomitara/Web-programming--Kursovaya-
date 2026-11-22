@@ -1,20 +1,77 @@
+# Общие секреты сервисов (в Kubernetes они хранятся в Secret)
+x-shared-secrets: &shared-secrets
+  JWT_SECRET: dev-jwt-secret-change-me      # общий секрет подписи JWT
+  SERVICE_TOKEN: dev-service-token          # токен внутреннего API сервиса авторизации
+
 services:
+  # ---------- основной сервис (турниры, команды, игроки, матчи) ----------
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dotaesports
+      POSTGRES_USER: dotaesports
+      POSTGRES_PASSWORD: dotaesports
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dotaesports"]
+      interval: 5s
+      retries: 10
+
   backend:
     build: .
     image: cajodev/dotaesports:backend-${TAG:-latest}
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && gunicorn app.wsgi:application --bind 0.0.0.0:8000 --workers 2"
     environment:
-      DB_PATH: /app/data/db.sqlite3
-    ports:
-      - "8001:8000"
+      <<: *shared-secrets
+      DB_HOST: db
+      DB_NAME: dotaesports
+      DB_USER: dotaesports
+      DB_PASSWORD: dotaesports
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,backend
+      MEDIA_ROOT: /app/media
+      AUTH_SERVICE_URL: http://auth:8000
     volumes:
-      - sqlite_data:/app/data
+      - media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
 
+  # ---------- сервис авторизации (пользователи, вход, JWT) ----------
+  auth-db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: auth
+      POSTGRES_USER: auth
+      POSTGRES_PASSWORD: auth
+    volumes:
+      - auth_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth"]
+      interval: 5s
+      retries: 10
+
+  auth:
+    build: ./auth_service
+    image: cajodev/dotaesports:auth-${TAG:-latest}
+    command: sh -c "python manage.py migrate && gunicorn auth_project.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+    environment:
+      <<: *shared-secrets
+      DB_HOST: auth-db
+      DB_NAME: auth
+      DB_USER: auth
+      DB_PASSWORD: auth
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,auth
+    depends_on:
+      auth-db:
+        condition: service_healthy
+
+  # ---------- клиент и шлюз ----------
   frontend:
     build: ./client
     image: cajodev/dotaesports:frontend-${TAG:-latest}
-    ports:
-      - "5174:5173"
 
   nginx:
     build: ./nginx
@@ -23,7 +80,10 @@ services:
       - "81:80"
     depends_on:
       - backend
+      - auth
       - frontend
 
 volumes:
-  sqlite_data:
+  pg_data:
+  auth_pg_data:
+  media:

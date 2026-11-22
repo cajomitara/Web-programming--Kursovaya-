@@ -1,11 +1,28 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User 
+from rest_framework.exceptions import APIException
 from dotaesports.models import Tournament, Team, Player, TournamentTeamParticipation, Match, PlayerTeamHistory
+from dotaesports import auth_client
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'username']
+
+class AuthServiceUnavailable(APIException):
+    status_code = 503
+    default_detail = "Сервис авторизации недоступен"
+
+
+def _raise_for_auth_error(error):
+    # 409 — имя занято (ошибка валидации), остальное — проблема на стороне сервиса
+    if error.status == 409:
+        raise serializers.ValidationError({"nickname": "Пользователь с таким именем уже существует"})
+    raise AuthServiceUnavailable(str(error))
+
+
+def _current_manager(context):
+    # пользователь берётся из JWT (dotaesports.authentication.TokenUser)
+    request = context.get('request')
+    user = getattr(request, 'user', None)
+    if user is not None and user.is_authenticated:
+        return user.id, user.username
+    return None, None
 
 class TournamentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,40 +35,33 @@ class TeamSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'country', 'logo']
 
 class PlayerSerializer(serializers.ModelSerializer):
-    # создание пользователя при создании игрока
+    # создание учётной записи в сервисе авторизации при создании игрока
     def create(self, validated_data):
         nickname = validated_data.get('nickname')
         
         if Player.objects.filter(nickname=nickname).exists():
             raise serializers.ValidationError({"nickname": "Игрок с таким никнеймом уже существует"})
-        
-        username = nickname
-        if User.objects.filter(username=username).exists():
-            raise serializers.ValidationError({"nickname": "Пользователь с таким именем уже существует"})
 
-        user = User.objects.create_user(
-            username=username,
-            password='dotaesports'
-        )
-        
-        validated_data['user'] = user
+        try:
+            validated_data['auth_user_id'] = auth_client.create_user(username=nickname, password='dotaesports')
+        except auth_client.AuthServiceError as error:
+            _raise_for_auth_error(error)
         
         team = validated_data.get('team')
 
         player = super().create(validated_data)
         
-        request = self.context.get('request')
-        manager = request.user if request else None
-            
+        manager_id, manager_username = _current_manager(self.context)
         PlayerTeamHistory.objects.create(
             player=player,
             team=team,
-            manager=manager
+            manager_user_id=manager_id,
+            manager_username=manager_username
         )
 
         return player
     
-    # изменение пользователя при изменении игрока
+    # переименование учётной записи при изменении никнейма игрока
     def update(self, instance, validated_data):
         nickname = validated_data.get('nickname')
 
@@ -59,13 +69,11 @@ class PlayerSerializer(serializers.ModelSerializer):
             if Player.objects.filter(nickname=nickname).exclude(id=instance.id).exists():
                 raise serializers.ValidationError({"nickname": "Игрок с таким никнеймом уже существует"})
             
-            user = instance.user
-            if user:
-                if User.objects.filter(username=nickname).exclude(id=user.id).exists():
-                    raise serializers.ValidationError({"nickname": "Пользователь с таким именем уже существует"})
-                
-                user.username = nickname
-                user.save()
+            if instance.auth_user_id:
+                try:
+                    auth_client.rename_user(instance.auth_user_id, nickname)
+                except auth_client.AuthServiceError as error:
+                    _raise_for_auth_error(error)
         
         old_team = instance.team
         new_team = validated_data.get('team', old_team)
@@ -73,13 +81,12 @@ class PlayerSerializer(serializers.ModelSerializer):
         player = super().update(instance, validated_data)
 
         if new_team != old_team:
-            request = self.context.get('request')
-            manager = request.user
-            
+            manager_id, manager_username = _current_manager(self.context)
             PlayerTeamHistory.objects.create(
                 player=player,
                 team=new_team,
-                manager=manager
+                manager_user_id=manager_id,
+                manager_username=manager_username
             )
         return player
     
@@ -159,7 +166,7 @@ class MatchSerializer(serializers.ModelSerializer):
 class PlayerTeamHistorySerializer(serializers.ModelSerializer):
     player = PlayerSerializer(read_only=True)
     team = TeamSerializer(read_only=True)
-    manager = UserSerializer(read_only=True)
+    manager = serializers.CharField(source='manager_username', read_only=True)
     
     player_id = serializers.PrimaryKeyRelatedField(
         queryset=Player.objects.all(),
@@ -174,15 +181,9 @@ class PlayerTeamHistorySerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    manager_id = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        source='manager',
-        write_only=True,
-        required=False,
-        allow_null=True
-    )
+    manager_user_id = serializers.IntegerField(required=False, allow_null=True)
     
     class Meta:
         model = PlayerTeamHistory
         fields = ['id', 'player', 'player_id', 'team', 'team_id', 
-                 'manager', 'manager_id', 'created_at']
+                 'manager', 'manager_user_id', 'created_at']

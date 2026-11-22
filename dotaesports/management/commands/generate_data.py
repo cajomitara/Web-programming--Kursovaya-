@@ -1,14 +1,13 @@
 import random
 from datetime import datetime, timedelta
 from django.core.management.base import BaseCommand
-from django.contrib.auth.models import User
 from faker import Faker
 from dotaesports.models import (
     Tournament, Team, Player, 
     TournamentTeamParticipation, Match
 )
 from dotaesports.serializers import PlayerSerializer
-from django.test import RequestFactory
+from rest_framework.exceptions import APIException, ValidationError
 
 
 class Command(BaseCommand):
@@ -21,17 +20,9 @@ class Command(BaseCommand):
         TournamentTeamParticipation.objects.all().delete()
         Match.objects.all().delete()
 
-        try:
-            manager_user = User.objects.create_user(
-                username='script_manager',
-                password='dotaesports'
-            )
-        except:
-            manager_user = User.objects.get(username='script_manager')
-
         self.generate_tournaments(fake, count=20)
         self.generate_teams(fake, count=20)
-        self.generate_players(fake, count=100, manager_user=manager_user)
+        self.generate_players(fake, count=100)
         self.generate_team_participations(fake)
         self.generate_matches(fake)
     
@@ -72,7 +63,7 @@ class Command(BaseCommand):
                 country=random.choice(countries)
             )
     
-    def generate_players(self, fake, count, manager_user):
+    def generate_players(self, fake, count):
         teams = list(Team.objects.all())
         if not teams:
             return
@@ -93,10 +84,6 @@ class Command(BaseCommand):
 
             team = random.choice(teams)
 
-            factory = RequestFactory()
-            request = factory.get('/')
-            request.user = manager_user 
-
             player_data = {
                 "nickname": nickname,
                 "real_name": f"{first_name} {last_name}",
@@ -104,9 +91,18 @@ class Command(BaseCommand):
                 "team_id": team.id
             }
 
+            # учётная запись игрока создаётся через внутренний API сервиса авторизации
             serializer = PlayerSerializer(data=player_data)
-            serializer.is_valid()
-            serializer.save()
+            if not serializer.is_valid():
+                continue
+            try:
+                serializer.save()
+            except ValidationError:
+                # такой никнейм уже занят (например, после повторного запуска команды)
+                continue
+            except APIException as error:
+                self.stderr.write(f"Не удалось создать игрока {nickname}: {error}")
+                return
 
     
     def generate_team_participations(self, fake):

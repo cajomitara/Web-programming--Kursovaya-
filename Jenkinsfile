@@ -30,6 +30,13 @@ pipeline {
             }
         }
 
+        // запуск тестов сервиса авторизации
+        stage('Auth Tests') {
+            steps {
+                sh 'docker compose run --rm auth python manage.py test'
+            }
+        }
+
         // пуш образов в репозиторий docker hub
         stage('Push to Docker Hub') {
             steps {
@@ -54,6 +61,8 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/ > /dev/null'
+                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/health/ready/'
+                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/users/my/'
             }
         }
     }
