@@ -4,4 +4,5 @@ db.sqlite3
 .venv
 .vscode
 node_modules
-media
+mediaauth_service/*.sqlite3
+staticfiles
