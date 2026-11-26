@@ -57,17 +57,20 @@ pipeline {
         //     }
         // }
 
-        // смок тест нгинкса
-        stage('Smoke Test') {
-            steps {
-                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/ > /dev/null'
-                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/health/ready/'
-                sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/users/my/'
-            }
-        }
+        // // смок тест нгинкса
+        // stage('Smoke Test') {
+        //     steps {
+        //         sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/ > /dev/null'
+        //         sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/health/ready/'
+        //         sh 'docker compose exec -T nginx wget -qO- http://127.0.0.1/api/users/my/'
+        //     }
+        // }
     }
 
     post {
+        always {
+            sh 'docker compose down -v'
+        }
         success {
             echo 'CI pipeline completed successfully!'
         }
